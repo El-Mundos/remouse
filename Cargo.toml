@@ -11,7 +11,7 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 keywords = ["mouse", "input", "debounce", "linux", "hardware"]
 categories = ["hardware-support", "command-line-utilities"]
-rust-version = "1.75"
+rust-version = "1.85"
 
 [dependencies]
 
