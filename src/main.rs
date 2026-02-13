@@ -5,7 +5,7 @@ use std::os::unix::io::AsRawFd;
 // Structure for the timestamps within the input events
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-struct timeVal {
+struct TimeVal {
     tv_sec: i64,
     tv_usec: i64,
 }
@@ -13,8 +13,8 @@ struct timeVal {
 // Structure for the input events from the device
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-struct inputEvent {
-    time: timeVal,
+struct InputEvent {
+    time: TimeVal,
     event_type: u16,
     code: u16,
     value: i32,
@@ -27,10 +27,10 @@ fn open_device(path: &str) -> std::io::Result<File> {
     File::open(path)
 }
 
-fn read_event(file: &mut File) -> std::io::Result<inputEvent> {
+fn read_event(file: &mut File) -> std::io::Result<InputEvent> {
     // Initialize an empty inputEvent struct to read into
-    let mut event = inputEvent {
-        time: timeVal {
+    let mut event = InputEvent {
+        time: TimeVal {
             tv_sec: 0,
             tv_usec: 0,
         },
@@ -43,7 +43,7 @@ fn read_event(file: &mut File) -> std::io::Result<inputEvent> {
     let bytes = unsafe {
         std::slice::from_raw_parts_mut(
             &mut event as *mut _ as *mut u8, // Cast the inputEvent struct to a byte pointer
-            std::mem::size_of::<inputEvent>(), // Specify the size of the byte slice
+            std::mem::size_of::<InputEvent>(), // Specify the size of the byte slice
         )
     };
 
