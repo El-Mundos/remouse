@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 use std::os::unix::io::AsRawFd;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // Structure for the timestamps within the input events
 #[repr(C)]
@@ -20,8 +21,43 @@ struct InputEvent {
     value: i32,
 }
 
+// The state of the debounced key
+// last_is_released: Whether the last event was a release (true) or anything else (false)
+// last_time: The timestamp of the last event (in milliseconds since epoch)
+// sent_press: Whether a press event has been sent currently
+// sent_release: Whether a release event has been sent yet for the last press event
+struct ButtonState {
+    last_is_released: bool,
+    last_time: i64,
+    sent_press: bool,
+    sent_release: bool,
+}
+
+impl ButtonState {
+    fn new() -> Self {
+        ButtonState {
+            last_is_released: true,
+            last_time: 0,
+            sent_press: false,
+            sent_release: true,
+        }
+    }
+}
+
 // EVIOCGRAB ioctl code
 const EVIOCGRAB: libc::c_ulong = 0x40044590; // From linux/input.h
+
+// Debounce constants
+// TODO: Read from args/config file
+const DEBOUNCE_MS: i64 = 50;
+const BTN_SIDE: u16 = 0x113;
+
+fn current_time_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Welcome to the future! (change your clock to past 1970 please)")
+        .as_millis() as i64
+}
 
 fn open_device(path: &str) -> std::io::Result<File> {
     File::open(path)
