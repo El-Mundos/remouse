@@ -57,6 +57,8 @@ const EVIOCGRAB: libc::c_ulong = 0x40044590; // From linux/input.h
 const DEBOUNCE_MS: i64 = 50;
 const BTN_SIDE: u16 = 0x113;
 
+const EV_KEY: u16 = 1;
+
 fn current_time_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -137,21 +139,42 @@ fn main() -> std::io::Result<()> {
     println!("Reading events from {}", device_path);
     println!("Press Ctrl+C to exit");
 
+    // Initialize button state
+    let mut button_state = ButtonState::new();
+
     loop {
         match read_event(&mut file)? {
             Some(event) => {
-                // TODO: Actually process the event and implement debounce logic
-                println!(
-                    "Got event! Type: {} code: {} value: {}",
-                    event.event_type, event.code, event.value
-                );
+                if event.event_type == EV_KEY && event.code == BTN_SIDE {
+                    let now = current_time_ms();
+
+                    // Update state
+                    button_state.last_is_released = event.value == 0;
+                    button_state.last_time = now;
+
+                    if event.value == 1 && !button_state.sent_press {
+                        // First press - forward inmediately
+                        println!("FORWARDED PRESS!");
+                        button_state.sent_press = true;
+                        button_state.sent_release = false; // Reset release flag
+                    }
+                }
             }
             None => {
-                // TODO: Check for silence timeout
+                let now = current_time_ms();
+                let elapsed = now - button_state.last_time;
+
+                if elapsed >= DEBOUNCE_MS
+                    && button_state.last_is_released
+                    && !button_state.sent_release
+                {
+                    println!("FORWARDED RELEASE");
+                    button_state.sent_release = true;
+                    button_state.sent_press = false; // Reset for next click
+                }
             }
         }
 
-        std::thread::sleep(std::time::Duration::from_millis(1));
-        // waiting
+        thread::sleep(Duration::from_millis(1));
     }
 }
