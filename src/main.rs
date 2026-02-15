@@ -1,4 +1,7 @@
+use nix::fcntl::{FcntlArg, OFlag, fcntl};
+use nix::libc;
 use std::fs::File;
+use std::io::ErrorKind;
 use std::io::Read;
 use std::os::unix::io::AsRawFd;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -103,6 +106,12 @@ fn grab_device(file: &File) -> std::io::Result<()> {
     Ok(())
 }
 
+fn set_nonblocking(file: &File) -> std::io::Result<()> {
+    fcntl(file, FcntlArg::F_SETFL(OFlag::O_NONBLOCK))
+        .map_err(|e| std::io::Error::from_raw_os_error(e as i32))?;
+    Ok(())
+}
+
 fn main() -> std::io::Result<()> {
     // Get device path from args
     let args: Vec<String> = std::env::args().collect();
@@ -116,14 +125,15 @@ fn main() -> std::io::Result<()> {
     // Open device
     let mut file = open_device(device_path)?;
 
-    // Grab device so it's not used elsewhere
+    // Grab device without blocking execution on read_event()
     grab_device(&file)?;
+    set_nonblocking(&file)?;
 
     println!("Device grabbed exclusively!");
     println!("Reading events from {}", device_path);
     println!("Press Ctrl+C to exit");
 
     loop {
-        let event = read_event(&mut file)?;
+        let _event = read_event(&mut file)?;
     }
 }

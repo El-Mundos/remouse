@@ -14,7 +14,7 @@ categories = ["hardware-support", "command-line-utilities"]
 rust-version = "1.85"
 
 [dependencies]
-libc = "0.2.182"
+nix = { version = "0.31.1", features = ["fs", "ioctl"] }
 
 [profile.release]
 opt-level = "z"
