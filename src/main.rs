@@ -89,11 +89,5 @@ fn main() -> std::io::Result<()> {
 
     loop {
         let event = read_event(&mut file)?;
-
-        // Print the event
-        println!(
-            "type: {} code: {} value: {}",
-            event.event_type, event.code, event.value
-        );
     }
 }
