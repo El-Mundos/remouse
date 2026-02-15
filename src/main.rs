@@ -4,6 +4,8 @@ use std::fs::File;
 use std::io::ErrorKind;
 use std::io::Read;
 use std::os::unix::io::AsRawFd;
+use std::thread;
+use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // Structure for the timestamps within the input events
@@ -66,7 +68,7 @@ fn open_device(path: &str) -> std::io::Result<File> {
     File::open(path)
 }
 
-fn read_event(file: &mut File) -> std::io::Result<InputEvent> {
+fn read_event(file: &mut File) -> std::io::Result<Option<InputEvent>> {
     // Initialize an empty inputEvent struct to read into
     let mut event = InputEvent {
         time: TimeVal {
@@ -87,9 +89,11 @@ fn read_event(file: &mut File) -> std::io::Result<InputEvent> {
     };
 
     // Fill the inputEvent struct with data read from the device
-    file.read_exact(bytes)?;
-
-    Ok(event)
+    match file.read_exact(bytes) {
+        Ok(_) => Ok(Some(event)),
+        Err(e) if e.kind() == ErrorKind::WouldBlock => Ok(None),
+        Err(e) => Err(e),
+    }
 }
 
 // Grab device for exclusive access so other processes can't read from it
@@ -134,6 +138,20 @@ fn main() -> std::io::Result<()> {
     println!("Press Ctrl+C to exit");
 
     loop {
-        let _event = read_event(&mut file)?;
+        match read_event(&mut file)? {
+            Some(event) => {
+                // TODO: Actually process the event and implement debounce logic
+                println!(
+                    "Got event! Type: {} code: {} value: {}",
+                    event.event_type, event.code, event.value
+                );
+            }
+            None => {
+                // TODO: Check for silence timeout
+            }
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        // waiting
     }
 }
