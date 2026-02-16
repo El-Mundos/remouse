@@ -142,6 +142,8 @@ fn main() -> std::io::Result<()> {
     // Initialize button state
     let mut button_state = ButtonState::new();
 
+    let mut counter: i32 = 0;
+
     loop {
         match read_event(&mut file)? {
             Some(event) => {
@@ -168,13 +170,17 @@ fn main() -> std::io::Result<()> {
                     && button_state.last_is_released
                     && !button_state.sent_release
                 {
-                    println!("FORWARDED RELEASE");
+                    println!(
+                        "FORWARDED RELEASE elapsed time: {}, click count: {}",
+                        elapsed, counter
+                    );
                     button_state.sent_release = true;
                     button_state.sent_press = false; // Reset for next click
+                    counter += 1;
                 }
             }
         }
 
-        thread::sleep(Duration::from_millis(1));
+        thread::sleep(Duration::from_millis(5));
     }
 }
